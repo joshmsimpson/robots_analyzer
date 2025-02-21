@@ -1,0 +1,584 @@
+{% if error %}
+<div class="alert alert-danger terminal-alert" role="alert">
+    <h4 class="alert-heading">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        ERROR: Analysis Failed
+    </h4>
+    <pre class="error-message mb-0">{{ error }}</pre>
+    <hr>
+    <p class="mb-0">
+        <i class="bi bi-arrow-return-right"></i>
+        ACTION: Verify URL and retry operation
+    </p>
+</div>
+{% else %}
+<div class="card terminal-card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">
+                <i class="bi bi-file-text"></i>
+                Analysis Report
+            </h3>
+            <small class="timestamp">
+                <i class="bi bi-clock"></i>
+                {{ timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+            </small>
+        </div>
+        <div class="mt-2">
+            <a href="{{ url }}" target="_blank" class="badge terminal-badge terminal-link">
+                <i class="bi bi-link-45deg"></i>
+                {{ url }}
+                <i class="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card terminal-stats-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-graph-up"></i>
+                            Analysis Metrics
+                        </h5>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-check-circle"></i>
+                                    Allowed URLs
+                                </span>
+                                <span class="badge terminal-badge-success">{{ stats.allowed_count }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-x-circle"></i>
+                                    Disallowed URLs
+                                </span>
+                                <span class="badge terminal-badge-danger">{{ stats.disallowed_count }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-chat-text"></i>
+                                    Comments
+                                </span>
+                                <span class="badge terminal-badge-info">{{ stats.comments_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card terminal-stats-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-pie-chart"></i>
+                            Distribution Analysis
+                        </h5>
+                        <div class="chart-container">
+                            <div id="metricsChart"></div>
+                        </div>
+
+                        <script>
+                            function initializeChart() {
+                                const chartDiv = document.getElementById('metricsChart');
+                                if (!chartDiv) return;
+
+                                const data = [{
+                                    values: [{{ stats.allowed_count }}, {{ stats.disallowed_count }}, {{ stats.comments_count }}],
+                                    labels: ['Allowed URLs', 'Disallowed URLs', 'Comments'],
+                                    type: 'pie',
+                                    hole: 0.4,
+                                    marker: {
+                                        colors: ['rgba(0, 255, 0, 0.8)', 'rgba(255, 68, 68, 0.8)', 'rgba(68, 170, 255, 0.8)'],
+                                        line: {
+                                            color: ['#00ff00', '#ff4444', '#44aaff'],
+                                            width: 2
+                                        }
+                                    },
+                                    textfont: {
+                                        family: "'Courier New', monospace",
+                                        size: 12,
+                                        color: '#00ff00'
+                                    }
+                                }];
+
+                                const layout = {
+                                    paper_bgcolor: 'rgba(0,0,0,0)',
+                                    plot_bgcolor: 'rgba(0,0,0,0)',
+                                    showlegend: true,
+                                    legend: {
+                                        font: {
+                                            family: "'Courier New', monospace",
+                                            size: 12,
+                                            color: '#00ff00'
+                                        }
+                                    },
+                                    margin: {
+                                        l: 20,
+                                        r: 20,
+                                        t: 20,
+                                        b: 20
+                                    },
+                                    height: 400
+                                };
+
+                                const config = {
+                                    responsive: true,
+                                    displayModeBar: false
+                                };
+
+                                if (window.Plotly) {
+                                    Plotly.newPlot(chartDiv, data, layout, config);
+                                } else {
+                                    // If Plotly isn't loaded, load it and then create the chart
+                                    const script = document.createElement('script');
+                                    script.src = 'https://cdn.plot.ly/plotly-2.27.0.min.js';
+                                    script.onload = function() {
+                                        Plotly.newPlot(chartDiv, data, layout, config);
+                                    };
+                                    document.head.appendChild(script);
+                                }
+                            }
+
+                            // Try to initialize chart immediately
+                            initializeChart();
+
+                            // Also try after a short delay to ensure DOM is ready
+                            setTimeout(initializeChart, 100);
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        </script>
+
+        {% if allowed %}
+        <div class="mt-4 terminal-section">
+            <div class="section-header allowed">
+                <div class="header-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h4>Allowed URLs</h4>
+                <div class="header-line"></div>
+            </div>
+            <div class="table-responsive terminal-table-container">
+                <table class="table table-striped table-hover terminal-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">User-Agent</th>
+                            <th style="width: 70%">Pattern</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user_agent, pattern in allowed %}
+                        <tr>
+                            <td><code class="user-agent-cell">{{ user_agent }}</code></td>
+                            <td><code class="pattern-cell">{{ pattern }}</code></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if disallowed %}
+        <div class="mt-4 terminal-section">
+            <div class="section-header disallowed">
+                <div class="header-icon">
+                    <i class="bi bi-x-circle-fill"></i>
+                </div>
+                <h4>Disallowed URLs</h4>
+                <div class="header-line"></div>
+            </div>
+            <div class="table-responsive terminal-table-container">
+                <table class="table table-striped table-hover terminal-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">User-Agent</th>
+                            <th style="width: 70%">Pattern</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user_agent, pattern in disallowed %}
+                        <tr>
+                            <td><code class="user-agent-cell">{{ user_agent }}</code></td>
+                            <td><code class="pattern-cell">{{ pattern }}</code></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if comments %}
+        <div class="mt-4 terminal-section">
+            <div class="section-header comments">
+                <div class="header-icon">
+                    <i class="bi bi-chat-text-fill"></i>
+                </div>
+                <h4>Comments</h4>
+                <div class="header-line"></div>
+            </div>
+            <div class="terminal-comments">
+                {% for comment in comments %}
+                <div class="terminal-comment">
+                    <pre class="mb-0"><code class="comment-text">{{ comment }}</code></pre>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <style>
+            /* Section Headers */
+            .section-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 1.5rem;
+                gap: 1rem;
+            }
+
+            .header-icon {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                font-size: 1.2rem;
+            }
+
+            .header-line {
+                flex-grow: 1;
+                height: 2px;
+                margin-left: 1rem;
+            }
+
+            /* Allowed Section */
+            [data-bs-theme="dark"] .section-header.allowed .header-icon {
+                background-color: rgba(0, 255, 0, 0.2);
+                border: 2px solid #00ff00;
+                color: #00ff00;
+                box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            }
+
+            [data-bs-theme="dark"] .section-header.allowed .header-line {
+                background: linear-gradient(to right, #00ff00, transparent);
+            }
+
+            /* Disallowed Section */
+            [data-bs-theme="dark"] .section-header.disallowed .header-icon {
+                background-color: rgba(255, 0, 0, 0.2);
+                border: 2px solid #ff4444;
+                color: #ff4444;
+                box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+            }
+
+            [data-bs-theme="dark"] .section-header.disallowed .header-line {
+                background: linear-gradient(to right, #ff4444, transparent);
+            }
+
+            /* Comments Section */
+            [data-bs-theme="dark"] .section-header.comments .header-icon {
+                background-color: rgba(68, 170, 255, 0.2);
+                border: 2px solid #44aaff;
+                color: #44aaff;
+                box-shadow: 0 0 10px rgba(68, 170, 255, 0.3);
+            }
+
+            [data-bs-theme="dark"] .section-header.comments .header-line {
+                background: linear-gradient(to right, #44aaff, transparent);
+            }
+
+            /* Terminal Link */
+            [data-bs-theme="dark"] .terminal-link {
+                transition: all 0.3s ease;
+                text-decoration: none;
+            }
+
+            [data-bs-theme="dark"] .terminal-link:hover {
+                background-color: var(--terminal-green);
+                color: var(--terminal-dark);
+                box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+                transform: translateY(-1px);
+            }
+
+            /* Table Styles */
+            .terminal-table-container {
+                max-height: 600px;
+                overflow-y: auto;
+                border: 1px solid var(--terminal-green);
+                border-radius: 4px;
+                margin: 0;
+                background-color: var(--terminal-gray);
+            }
+
+            .terminal-table {
+                margin: 0;
+            }
+
+            .terminal-table td {
+                padding: 0.5rem 1rem;
+                vertical-align: middle;
+                word-break: break-all;
+            }
+
+            .user-agent-cell {
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .pattern-cell {
+                display: block;
+                word-break: break-all;
+                white-space: pre-wrap;
+            }
+
+            /* Comments Section */
+            .terminal-comments {
+                max-height: 600px;
+                overflow-y: auto;
+                border: 1px solid var(--terminal-green);
+                border-radius: 4px;
+                background-color: var(--terminal-gray);
+            }
+
+            .terminal-comment {
+                padding: 0.5rem 1rem;
+                border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+            }
+
+            .terminal-comment:last-child {
+                border-bottom: none;
+            }
+
+            .comment-text {
+                display: block;
+                word-break: break-all;
+                white-space: pre-wrap;
+            }
+
+            /* Scrollbar Styling */
+            .terminal-table-container::-webkit-scrollbar,
+            .terminal-comments::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            .terminal-table-container::-webkit-scrollbar-track,
+            .terminal-comments::-webkit-scrollbar-track {
+                background: var(--terminal-gray);
+                border-radius: 4px;
+            }
+
+            .terminal-table-container::-webkit-scrollbar-thumb,
+            .terminal-comments::-webkit-scrollbar-thumb {
+                background: var(--terminal-green);
+                border-radius: 4px;
+            }
+
+            .terminal-table-container::-webkit-scrollbar-thumb:hover,
+            .terminal-comments::-webkit-scrollbar-thumb:hover {
+                background: var(--terminal-bright-green);
+            }
+
+            /* Chart Container */
+            .chart-container {
+                position: relative;
+                margin: 0 auto;
+                padding: 1rem;
+                width: 100%;
+                max-width: 500px;
+                height: 400px;
+            }
+
+            [data-bs-theme="dark"] .chart-container {
+                border: 1px solid var(--terminal-green);
+                border-radius: 0.375rem;
+                background-color: rgba(0, 255, 0, 0.05);
+                box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+            }
+
+            #metricsChart {
+                width: 100%;
+                height: 100%;
+            }
+
+            /* Badge Styles */
+            [data-bs-theme="dark"] .terminal-badge-success {
+                background-color: rgba(0, 255, 0, 0.2);
+                color: #00ff00;
+                border: 1px solid #00ff00;
+                box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+                font-family: 'Courier New', monospace;
+            }
+
+            [data-bs-theme="dark"] .terminal-badge-danger {
+                background-color: rgba(255, 68, 68, 0.2);
+                color: #ff4444;
+                border: 1px solid #ff4444;
+                box-shadow: 0 0 5px rgba(255, 68, 68, 0.3);
+                font-family: 'Courier New', monospace;
+            }
+
+            [data-bs-theme="dark"] .terminal-badge-info {
+                background-color: rgba(68, 170, 255, 0.2);
+                color: #44aaff;
+                border: 1px solid #44aaff;
+                box-shadow: 0 0 5px rgba(68, 170, 255, 0.3);
+                font-family: 'Courier New', monospace;
+            }
+
+            /* List Group Item Styles */
+            [data-bs-theme="dark"] .list-group-item {
+                background-color: var(--terminal-gray);
+                border-color: rgba(0, 255, 0, 0.1);
+                color: var(--terminal-green);
+            }
+
+            /* Section Animations */
+            .terminal-section {
+                animation: slide-in 0.3s ease-out;
+            }
+
+            @keyframes slide-in {
+                from {
+                    opacity: 0;
+                    transform: translateX(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+
+            /* Chart Animation */
+            @keyframes chart-fade-in {
+                from {
+                    opacity: 0;
+                    transform: scale(0.9);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            .chart-container {
+                animation: chart-fade-in 0.5s ease-out forwards;
+            }
+
+
+        </style>
+
+        {% if not allowed and not disallowed and not comments %}
+        <div class="alert alert-warning terminal-alert" role="alert">
+            <h4 class="alert-heading">
+                <i class="bi bi-exclamation-circle"></i>
+                Empty Robots.txt Detected
+            </h4>
+            <p>The robots.txt file exists but contains no directives or comments.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Terminal Specific Styles */
+    [data-bs-theme="dark"] .terminal-card {
+        border: 2px solid var(--terminal-green);
+    }
+
+    [data-bs-theme="dark"] .terminal-badge {
+        background-color: var(--terminal-green);
+        color: var(--terminal-dark);
+        font-family: 'Courier New', Courier, monospace;
+        padding: 0.5rem 1rem;
+    }
+
+    [data-bs-theme="dark"] .terminal-badge-success {
+        background-color: var(--terminal-green);
+        color: var(--terminal-dark);
+    }
+
+    [data-bs-theme="dark"] .terminal-badge-danger {
+        background-color: #ff4444;
+        color: var(--terminal-dark);
+    }
+
+    [data-bs-theme="dark"] .terminal-badge-info {
+        background-color: #44aaff;
+        color: var(--terminal-dark);
+    }
+
+    [data-bs-theme="dark"] .terminal-stats-card {
+        background-color: var(--terminal-gray);
+        border: 1px solid var(--terminal-green);
+    }
+
+    [data-bs-theme="dark"] .terminal-table {
+        border: 1px solid var(--terminal-green);
+    }
+
+    [data-bs-theme="dark"] .terminal-table thead {
+        background-color: var(--terminal-green);
+        color: var(--terminal-dark);
+    }
+
+    [data-bs-theme="dark"] .terminal-comments {
+        border: 1px solid var(--terminal-green);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        background-color: var(--terminal-gray);
+    }
+
+    [data-bs-theme="dark"] .terminal-comment {
+        border-bottom: 1px solid var(--terminal-green);
+        padding: 0.5rem 0;
+    }
+
+    [data-bs-theme="dark"] .terminal-comment:last-child {
+        border-bottom: none;
+    }
+
+    [data-bs-theme="dark"] .terminal-section h4 {
+        color: var(--terminal-bright-green);
+        font-family: 'Courier New', Courier, monospace;
+        margin-bottom: 1rem;
+    }
+
+    [data-bs-theme="dark"] .terminal-alert {
+        border: 1px solid var(--terminal-green);
+        background-color: var(--terminal-gray);
+    }
+
+    [data-bs-theme="dark"] .error-message {
+        color: #ff4444;
+        background-color: var(--terminal-gray);
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-top: 1rem;
+    }
+
+    [data-bs-theme="dark"] .timestamp {
+        font-family: 'Courier New', Courier, monospace;
+        color: var(--terminal-bright-green);
+    }
+
+    /* Animation for new content */
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .terminal-card {
+        animation: fade-in 0.3s ease-out;
+    }
+</style>
+{% endif %}

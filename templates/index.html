@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="terminal-welcome mb-4 text-center">
+            <pre class="d-inline-block text-start">
+ _____       _           _         _            
+|  __ \     | |         | |       | |           
+| |__) |___ | |__   ___ | |_ ___  | |___  __
+|  _  // _ \| '_ \ / _ \| __/ __| | __\ \/ /
+| | \ \ (_) | |_) | (_) | |_\__ \ | |_ >  < 
+|_|  \_\___/|_.__/ \___/ \__|___/  \__/_/\_\
+                                             
+    >>> ANALYZER SYSTEM v1.0 <<<
+    [READY FOR INPUT]
+            </pre>
+        </div>
+
+        <div class="card terminal-card">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-terminal me-2"></i>
+                    <h3 class="card-title mb-0">COMMAND: Analyze Robots.txt</h3>
+                </div>
+            </div>
+            <div class="card-body">
+                <form hx-post="/analyze" 
+                      hx-target="#analysis-result"
+                      hx-indicator="#loading-indicator"
+                      hx-swap="innerHTML"
+                      hx-trigger="submit"
+                      >
+                    <div class="mb-3">
+                        <label for="url" class="form-label">
+                            <i class="bi bi-chevron-right"></i>
+                            TARGET URL:
+                        </label>
+                        <input type="text" 
+                               class="form-control terminal-input" 
+                               id="url" 
+                               name="url" 
+                               placeholder="Enter target URL (e.g., example.com)" 
+                               required
+                               autocomplete="off">
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i>
+                            SYNTAX: domain.com | https://domain.com
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary terminal-btn">
+                        <span class="loading-indicator">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            EXECUTING ANALYSIS...
+                        </span>
+                        <span class="not-loading">
+                            <i class="bi bi-play-fill"></i>
+                            EXECUTE ANALYSIS
+                        </span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div id="analysis-result" class="mt-4">
+        </div>
+    </div>
+</div>
+
+<style>
+    .loading-indicator {
+        display: none;
+    }
+    .htmx-request .loading-indicator {
+        display: inline-block;
+    }
+    .htmx-request .not-loading {
+        display: none;
+    }
+    
+    /* Loading Animation */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .loading-indicator {
+        animation: pulse 1.5s infinite;
+    }
+
+    /* Terminal Input Styling */
+    .terminal-input {
+        font-family: 'Courier New', Courier, monospace;
+        letter-spacing: 0.5px;
+    }
+
+    [data-bs-theme="dark"] .terminal-input::placeholder {
+        color: rgba(0, 255, 0, 0.5);
+    }
+
+    /* Terminal Button */
+    [data-bs-theme="dark"] .terminal-btn {
+        border: 1px solid var(--terminal-green);
+        background-color: var(--terminal-gray);
+        color: var(--terminal-green);
+        font-family: 'Courier New', Courier, monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    [data-bs-theme="dark"] .terminal-btn:hover {
+        background-color: var(--terminal-green);
+        color: var(--terminal-dark);
+    }
+
+    /* Terminal Card */
+    [data-bs-theme="dark"] .terminal-card {
+        border-width: 2px;
+    }
+
+    /* ASCII Art */
+    .terminal-welcome pre {
+        color: var(--terminal-green);
+        font-size: 0.8rem;
+        margin: 0;
+        text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    /* Blinking Cursor */
+    @keyframes cursor-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+
+    [data-bs-theme="dark"] .form-control {
+        position: relative;
+    }
+
+    [data-bs-theme="dark"] .form-control:focus {
+        caret-color: var(--terminal-green);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Total Counts -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Global Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="terminal-badge-success mb-2">
+                            <i class="bi bi-check-circle"></i>
+                            {{ totals.total_allowed or 0 }} Allowed URLs
+                        </div>
+                        <small class="text-muted">Avg: {{ "%.1f"|format(avg_counts.avg_allowed or 0) }} per domain</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="terminal-badge-danger mb-2">
+                            <i class="bi bi-x-circle"></i>
+                            {{ totals.total_disallowed or 0 }} Disallowed URLs
+                        </div>
+                        <small class="text-muted">Avg: {{ "%.1f"|format(avg_counts.avg_disallowed or 0) }} per domain</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="terminal-badge-info mb-2">
+                            <i class="bi bi-chat-text"></i>
+                            {{ totals.total_comments or 0 }} Comments
+                        </div>
+                        <small class="text-muted">Avg: {{ "%.1f"|format(avg_counts.avg_comments or 0) }} per domain</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="terminal-badge-neon mb-2">
+                            <i class="bi bi-globe"></i>
+                            {{ totals.total_domains or 0 }} Domains
+                        </div>
+                        <small class="text-muted">Analyzed in total</small>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>URL Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div id="urlDistributionChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domain Comments -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Comments by Domain Type</h5>
+            </div>
+            <div class="card-body">
+                <div id="domainCommentsChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Agent Patterns -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-diagram-3-fill me-2"></i>User Agent URL Patterns</h5>
+            </div>
+            <div class="card-body">
+                <div id="userAgentsChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Statistics Row -->
+    <div class="row">
+        <!-- Most Common Allowed Directories -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Most Common Allowed Directories</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Pattern</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pattern in allowed_patterns %}
+                                <tr>
+                                    <td><code>{{ pattern.url_pattern }}</code></td>
+                                    <td>{{ pattern.count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Most Common Disallowed Directories -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-x-circle me-2"></i>Most Common Disallowed Directories</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Pattern</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pattern in disallowed_patterns %}
+                                <tr>
+                                    <td><code>{{ pattern.url_pattern }}</code></td>
+                                    <td>{{ pattern.count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Most Common Comments -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-text me-2"></i>Most Common Comments</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Comment</th>
+                                <th>Frequency</th>
+                                <th>Length</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comment in comments_stats %}
+                            <tr>
+                                <td><code>{{ comment.comment }}</code></td>
+                                <td>{{ comment.frequency }}</td>
+                                <td>{{ comment.length }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Most Common User Agents -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-robot me-2"></i>Most Common User Agents</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>User Agent</th>
+                                <th>Allowed</th>
+                                <th>Disallowed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for agent in user_agents %}
+                            <tr>
+                                <td><code>{{ agent.user_agent }}</code></td>
+                                <td>{{ agent.allowed_count }}</td>
+                                <td>{{ agent.disallowed_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Analyzed Domains -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Latest Analyzed Domains</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Allowed</th>
+                                <th>Disallowed</th>
+                                <th>Comments</th>
+                                <th>Analyzed At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for domain in latest_domains %}
+                            <tr>
+                                <td><a href="{{ domain.url }}" target="_blank" class="terminal-link"><code>{{ domain.url }}</code></a></td>
+                                <td>{{ domain.allowed_count }}</td>
+                                <td>{{ domain.disallowed_count }}</td>
+                                <td>{{ domain.comments_count }}</td>
+                                <td>{{ domain.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {% if current_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ current_page - 1 }}" aria-label="Previous">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for p in range(1, total_pages + 1) %}
+                            <li class="page-item {% if p == current_page %}active{% endif %}">
+                                <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+                            </li>
+                            {% endfor %}
+
+                            {% if current_page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ current_page + 1 }}" aria-label="Next">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Initialize Charts -->
+<script>
+    function initializeCharts() {
+        if (!window.Plotly) {
+            console.log('Waiting for Plotly to load...');
+            setTimeout(initializeCharts, 100);
+            return;
+        }
+        console.log('Initializing charts...');
+        
+        // URL Distribution Pie Chart
+        const urlDistData = [{
+            values: [
+                {{ totals.total_allowed or 0 }},
+                {{ totals.total_disallowed or 0 }},
+                {{ totals.total_comments or 0 }}
+            ],
+            labels: ['Allowed URLs', 'Disallowed URLs', 'Comments'],
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: ['rgba(0, 255, 0, 0.8)', 'rgba(255, 68, 68, 0.8)', 'rgba(68, 170, 255, 0.8)'],
+                line: {
+                    color: ['#00ff00', '#ff4444', '#44aaff'],
+                    width: 2
+                }
+            },
+            textfont: {
+                family: "'Courier New', monospace",
+                size: 12,
+                color: '#00ff00'
+            }
+        }];
+
+        const urlDistLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            showlegend: true,
+            legend: {
+                font: {
+                    family: "'Courier New', monospace",
+                    size: 12,
+                    color: '#00ff00'
+                }
+            },
+            margin: {
+                l: 20,
+                r: 20,
+                t: 20,
+                b: 20
+            },
+            height: 400
+        };
+
+        // Domain Comments Bar Chart
+        const domainCommentsData = [{
+            x: [{% for stat in domain_stats %}"{{ stat.tld }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+            y: [{% for stat in domain_stats %}{{ stat.comment_count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            type: 'bar',
+            marker: {
+                color: [
+                    'rgba(0, 255, 0, 0.8)',     // Terminal Green
+                    'rgba(0, 255, 255, 0.8)',   // Neon Cyan
+                    'rgba(0, 255, 128, 0.8)',   // Bright Spring Green
+                    'rgba(128, 255, 0, 0.8)',   // Chartreuse
+                    'rgba(0, 128, 255, 0.8)',   // Bright Blue
+                    'rgba(0, 255, 191, 0.8)',   // Aquamarine
+                    'rgba(191, 255, 0, 0.8)',   // Lime
+                    'rgba(0, 191, 255, 0.8)',   // Deep Sky Blue
+                    'rgba(64, 255, 128, 0.8)',  // Medium Spring Green
+                    'rgba(128, 255, 64, 0.8)'   // Light Green
+                ],
+                line: {
+                    color: '#00ff00',
+                    width: 1
+                }
+            },
+            opacity: 0.9,
+            hovertemplate: '<b>%{x}</b><br>Comments: %{y}<extra></extra>'
+        }];
+
+        const domainCommentsLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            showlegend: false,
+            xaxis: {
+                title: {
+                    text: 'Domain Type',
+                    font: {
+                        family: "'Courier New', monospace",
+                        size: 12,
+                        color: '#00ff00'
+                    },
+                    standoff: 20
+                },
+                tickfont: {
+                    family: "'Courier New', monospace",
+                    size: 12,
+                    color: '#00ff00'
+                },
+                gridcolor: 'rgba(0, 255, 0, 0.15)',
+                gridwidth: 1,
+                zerolinecolor: 'rgba(0, 255, 0, 0.3)',
+                zerolinewidth: 2
+            },
+            yaxis: {
+                title: {
+                    text: 'Number of Comments',
+                    font: {
+                        family: "'Courier New', monospace",
+                        size: 12,
+                        color: '#00ff00'
+                    },
+                    standoff: 20
+                },
+                tickfont: {
+                    family: "'Courier New', monospace",
+                    size: 12,
+                    color: '#00ff00'
+                },
+                gridcolor: 'rgba(0, 255, 0, 0.15)',
+                gridwidth: 1,
+                zerolinecolor: 'rgba(0, 255, 0, 0.3)',
+                zerolinewidth: 2
+            },
+            margin: {
+                l: 60,
+                r: 20,
+                t: 20,
+                b: 60
+            },
+            height: 400
+        };
+
+        // User Agents Scatter Plot
+        const userAgentsData = [
+            {% for agent in user_agents %}
+            {
+                name: "{{ agent.category }}",
+                x: [{{ agent.allowed_count }}],
+                y: [{{ agent.disallowed_count }}],
+                text: ["{{ agent.user_agent }}<br>Category: {{ agent.category }}<br>Allowed: {{ agent.allowed_count }}<br>Disallowed: {{ agent.disallowed_count }}"],
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: {{ (agent.allowed_count + agent.disallowed_count) / 2 + 15 }},
+                    sizemode: 'area',
+                    color: "{{ agent.color }}",
+                    line: {
+                        color: '#00ff00',
+                        width: 2
+                    }
+                },
+                opacity: 0.9,
+                hoverinfo: 'text',
+                hoverlabel: {
+                    bgcolor: 'rgba(26, 26, 26, 0.9)',
+                    bordercolor: '#00ff00',
+                    font: {
+                        family: "'Courier New', monospace",
+                        size: 12,
+                        color: '#00ff00'
+                    }
+                }
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const userAgentsLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            showlegend: true,
+            legend: {
+                font: {
+                    family: "'Courier New', monospace",
+                    size: 10,
+                    color: '#00ff00'
+                },
+                bgcolor: 'rgba(0, 0, 0, 0.7)',
+                bordercolor: '#00ff00',
+                borderwidth: 1,
+                orientation: 'h',
+                y: -0.2
+            },
+            xaxis: {
+                title: {
+                    text: 'Allowed URLs',
+                    font: {
+                        family: "'Courier New', monospace",
+                        size: 12,
+                        color: '#00ff00'
+                    },
+                    standoff: 20
+                },
+                tickfont: {
+                    family: "'Courier New', monospace",
+                    size: 12,
+                    color: '#00ff00'
+                },
+                gridcolor: 'rgba(0, 255, 0, 0.15)',
+                gridwidth: 1,
+                zerolinecolor: 'rgba(0, 255, 0, 0.3)',
+                zerolinewidth: 2
+            },
+            yaxis: {
+                title: {
+                    text: 'Disallowed URLs',
+                    font: {
+                        family: "'Courier New', monospace",
+                        size: 12,
+                        color: '#00ff00'
+                    },
+                    standoff: 20
+                },
+                tickfont: {
+                    family: "'Courier New', monospace",
+                    size: 12,
+                    color: '#00ff00'
+                },
+                gridcolor: 'rgba(0, 255, 0, 0.15)',
+                gridwidth: 1,
+                zerolinecolor: 'rgba(0, 255, 0, 0.3)',
+                zerolinewidth: 2
+            },
+            margin: {
+                l: 60,
+                r: 20,
+                t: 30,
+                b: 100
+            },
+            height: 500
+        };
+
+        // Initialize all charts
+        Plotly.newPlot('urlDistributionChart', urlDistData, urlDistLayout, {
+            responsive: true,
+            displayModeBar: false
+        });
+
+        Plotly.newPlot('domainCommentsChart', domainCommentsData, domainCommentsLayout, {
+            responsive: true,
+            displayModeBar: false
+        });
+
+        Plotly.newPlot('userAgentsChart', userAgentsData, userAgentsLayout, {
+            responsive: true,
+            displayModeBar: false
+        });
+    }
+
+    // Start initialization when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, starting chart initialization...');
+        initializeCharts();
+    });
+</script>
+
+<style>
+    /* Chart Containers */
+    .chart-container {
+        min-height: 400px;
+        width: 100%;
+        background-color: var(--terminal-gray);
+        border: 1px solid var(--terminal-green);
+        border-radius: 4px;
+        padding: 1rem;
+    }
+
+    [data-bs-theme="dark"] .chart-container {
+        box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+    }
+
+    /* Neon Badge */
+    [data-bs-theme="dark"] .terminal-badge-neon {
+        background-color: rgba(0, 255, 255, 0.15);
+        color: #00ffff;
+        border: 1px solid #00ffff;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        font-family: 'Courier New', monospace;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        font-weight: normal;
+        text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        animation: neon-pulse 2s infinite;
+    }
+
+    @keyframes neon-pulse {
+        0% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+        50% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
+        100% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+    }
+</style>
+{% endblock %}

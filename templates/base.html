@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robots.txt Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.0"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        :root {
+            --terminal-green: #00ff00;
+            --terminal-bright-green: #33ff33;
+            --terminal-dark: #000000;
+            --terminal-gray: #1a1a1a;
+            --terminal-light-gray: #2a2a2a;
+        }
+
+        /* Dark Theme */
+        [data-bs-theme="dark"] {
+            --bs-body-bg: var(--terminal-dark);
+            --bs-body-color: var(--terminal-green);
+            --bs-primary: var(--terminal-green);
+            --bs-primary-rgb: 0, 255, 0;
+            --bs-link-color: var(--terminal-bright-green);
+            --bs-link-hover-color: var(--terminal-green);
+        }
+
+        [data-bs-theme="dark"] .navbar {
+            background-color: var(--terminal-gray) !important;
+        }
+
+        [data-bs-theme="dark"] .card {
+            background-color: var(--terminal-gray);
+            border-color: var(--terminal-green);
+        }
+
+        [data-bs-theme="dark"] .card-header {
+            background-color: var(--terminal-light-gray);
+            border-bottom-color: var(--terminal-green);
+        }
+
+        [data-bs-theme="dark"] .table {
+            --bs-table-bg: var(--terminal-gray);
+            --bs-table-striped-bg: var(--terminal-light-gray);
+            --bs-table-striped-color: var(--terminal-bright-green);
+            border-color: var(--terminal-green);
+        }
+
+        [data-bs-theme="dark"] .form-control {
+            background-color: var(--terminal-light-gray);
+            border-color: var(--terminal-green);
+            color: var(--terminal-bright-green);
+        }
+
+        [data-bs-theme="dark"] .form-control:focus {
+            background-color: var(--terminal-gray);
+            border-color: var(--terminal-bright-green);
+            box-shadow: 0 0 0 0.25rem rgba(0, 255, 0, 0.25);
+        }
+
+        [data-bs-theme="dark"] pre {
+            background-color: var(--terminal-light-gray);
+            border: 1px solid var(--terminal-green);
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+
+        [data-bs-theme="dark"] code {
+            color: var(--terminal-bright-green);
+        }
+
+        /* Theme Switch */
+        .theme-switch {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            background-color: var(--terminal-gray);
+            border: 1px solid var(--terminal-green);
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Retro Terminal Effects */
+        @keyframes terminal-flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 0.95; }
+            100% { opacity: 0.97; }
+        }
+
+        [data-bs-theme="dark"] body {
+            animation: terminal-flicker 0.1s infinite;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+
+        [data-bs-theme="dark"] .card,
+        [data-bs-theme="dark"] .form-control,
+        [data-bs-theme="dark"] .btn {
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        [data-bs-theme="dark"] ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        [data-bs-theme="dark"] ::-webkit-scrollbar-track {
+            background: var(--terminal-gray);
+        }
+
+        [data-bs-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: var(--terminal-green);
+            border-radius: 5px;
+        }
+
+        [data-bs-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: var(--terminal-bright-green);
+        }
+
+        /* Cursor Effect */
+        [data-bs-theme="dark"] .form-control::after {
+            content: '▋';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Alert Styling */
+        [data-bs-theme="dark"] .alert {
+            background-color: var(--terminal-gray);
+            border-color: var(--terminal-green);
+        }
+
+        [data-bs-theme="dark"] .alert-danger {
+            --bs-alert-color: #ff4444;
+            border-color: #ff4444;
+        }
+
+        [data-bs-theme="dark"] .alert-warning {
+            --bs-alert-color: #ffff44;
+            border-color: #ffff44;
+        }
+
+        /* Badge Styling */
+        [data-bs-theme="dark"] .badge {
+            background-color: var(--terminal-green);
+            color: var(--terminal-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-nav mb-3">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-3">
+                <a href="/" class="terminal-nav-btn" title="Return to root directory">
+                    <i class="bi bi-house-door"></i>
+                    /root
+                </a>
+                <a href="/" class="terminal-nav-btn" title="Clear screen">
+                    <i class="bi bi-terminal"></i>
+                    clear
+                </a>
+                <a href="/stats" class="terminal-nav-btn" title="Global Statistics">
+                    <i class="bi bi-bar-chart"></i>
+                    stats
+                </a>
+            </div>
+            <div class="terminal-status">
+                <span class="status-light"></span>
+                <small>SYSTEM ACTIVE</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer mt-auto py-3">
+        <div class="container text-center">
+            <div class="terminal-prompt">
+                <span class="prompt-symbol">$></span>
+                <span class="prompt-text">SYSTEM READY</span>
+                <span class="cursor-blink">█</span>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        /* Terminal Navigation */
+        .terminal-nav {
+            background-color: var(--terminal-gray);
+            border-bottom: 1px solid var(--terminal-green);
+            padding: 0.5rem 0;
+        }
+
+        [data-bs-theme="dark"] .terminal-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 1rem;
+            color: var(--terminal-green);
+            text-decoration: none;
+            border: 1px solid var(--terminal-green);
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.2s ease;
+        }
+
+        [data-bs-theme="dark"] .terminal-nav-btn:hover {
+            background-color: var(--terminal-green);
+            color: var(--terminal-dark);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        /* Status Light */
+        .terminal-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-light {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--terminal-green);
+            box-shadow: 0 0 10px var(--terminal-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Terminal Prompt */
+        .terminal-prompt {
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--terminal-green);
+        }
+
+        .prompt-symbol {
+            color: var(--terminal-bright-green);
+            margin-right: 0.5rem;
+        }
+
+        .cursor-blink {
+            animation: blink 1s infinite;
+            color: var(--terminal-bright-green);
+            margin-left: 0.5rem;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+
+    <div class="theme-switch">
+        <i class="bi bi-display"></i>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="themeSwitch" checked>
+            <label class="form-check-label" for="themeSwitch">Terminal Mode</label>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        /* List Group Item Styles */
+        [data-bs-theme="dark"] .list-group-item {
+            background-color: var(--terminal-gray);
+            border-color: rgba(0, 255, 0, 0.1);
+            color: var(--terminal-green);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        [data-bs-theme="dark"] .list-group-item i {
+            margin-right: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Badge Styles */
+        [data-bs-theme="dark"] .terminal-badge-success {
+            background-color: rgba(0, 255, 0, 0.15);
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+            font-family: 'Courier New', monospace;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: normal;
+        }
+
+        [data-bs-theme="dark"] .terminal-badge-danger {
+            background-color: rgba(255, 68, 68, 0.15);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            box-shadow: 0 0 5px rgba(255, 68, 68, 0.3);
+            font-family: 'Courier New', monospace;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: normal;
+        }
+
+        [data-bs-theme="dark"] .terminal-badge-info {
+            background-color: rgba(68, 170, 255, 0.15);
+            color: #44aaff;
+            border: 1px solid #44aaff;
+            box-shadow: 0 0 5px rgba(68, 170, 255, 0.3);
+            font-family: 'Courier New', monospace;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: normal;
+        }
+    </style>
+    <script>
+        // Handle loading indicator
+        document.addEventListener('htmx:beforeRequest', function(event) {
+            // Only show loading for analyze requests
+            if (event.detail.target.id === 'analysis-result') {
+                const existingIndicator = document.getElementById('loading-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.id = 'loading-indicator';
+                loadingIndicator.innerHTML = `
+                    <div class="loading-overlay">
+                        <div class="loading-content">
+                            <i class="bi bi-robot"></i>
+                            <span>Analyzing robots.txt...</span>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(loadingIndicator);
+            }
+        });
+
+        document.addEventListener('htmx:afterRequest', function(event) {
+            // Only handle loading for analyze requests
+            if (event.detail.target.id === 'analysis-result') {
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+            }
+        });
+
+        // Also remove loading indicator if there's an error
+        document.addEventListener('htmx:responseError', function(event) {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+        });
+
+        // Initialize chart after content swaps
+        document.addEventListener('htmx:afterSettle', function(event) {
+            if (event.detail.target.id === 'analysis-result') {
+                if (typeof initializeChart === 'function') {
+                    initializeChart();
+                }
+            }
+        });
+    </script>
+    <style>
+        /* Loading Indicator */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: var(--terminal-gray);
+            border: 1px solid var(--terminal-green);
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--terminal-green);
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            animation: glow 1.5s infinite alternate;
+        }
+
+        .loading-content i {
+            font-size: 1.5rem;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+    <script>
+        document.getElementById('themeSwitch').addEventListener('change', function() {
+            document.documentElement.setAttribute('data-bs-theme', this.checked ? 'dark' : 'light');
+            localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        });
+
+        // Load saved theme preference
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        document.getElementById('themeSwitch').checked = savedTheme === 'dark';
+    </script>
+</body>
+</html>
