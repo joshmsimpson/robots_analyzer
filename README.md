@@ -57,7 +57,7 @@ A terminal-themed web application that scans and analyzes robots.txt files from 
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/joshmsimpson/robots_analyzer.git
 cd robots_analyzer
 ```
 
